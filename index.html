@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简天气查询</title>
+    <!-- 设备检测和样式加载 -->
+    <script>
+        // 检测设备类型
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // 创建样式链接
+        const styleLink = document.createElement('link');
+        styleLink.rel = 'stylesheet';
+        styleLink.href = isMobileDevice() ? 'style-mobile.css' : 'style-pc.css';
+        document.head.appendChild(styleLink);
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">极简天气</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+        
+        <main class="main">
+            <section class="search-section">
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索城市...">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <div class="suggestions" id="suggestions"></div>
+                </div>
+            </section>
+            
+            <section class="weather-section" id="weatherSection">
+                <div class="loading" id="loading">
+                    <div class="loader"></div>
+                    <p>加载中...</p>
+                </div>
+                
+                <div class="error" id="error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p id="errorMessage">网络异常，请稍后重试</p>
+                    <button class="retry-btn" id="retryBtn">重试</button>
+                </div>
+                
+                <div class="weather-content" id="weatherContent" style="display: none;">
+                    <div class="current-weather">
+                        <div class="location">
+                            <h2 id="cityName">北京</h2>
+                            <p id="date">2023年10月1日 星期日</p>
+                        </div>
+                        <div class="weather-info">
+                            <div class="main-info">
+                                <div class="weather-icon" id="weatherIcon">
+                                    <i class="fas fa-sun"></i>
+                                </div>
+                                <div class="temperature">
+                                    <span id="currentTemp">25</span>°C
+                                </div>
+                                <div class="weather-desc" id="weatherDesc">晴</div>
+                            </div>
+                            <div class="details">
+                                <div class="detail-item">
+                                    <i class="fas fa-tint"></i>
+                                    <span>湿度</span>
+                                    <span id="humidity">60%</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="fas fa-wind"></i>
+                                    <span>风向</span>
+                                    <span id="windDirection">东北风</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="fas fa-wind"></i>
+                                    <span>风速</span>
+                                    <span id="windSpeed">3级</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="fas fa-temperature-high"></i>
+                                    <span>体感温度</span>
+                                    <span id="feelsLike">27°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="forecast">
+                        <h3>未来几天预报</h3>
+                        <div class="forecast-items" id="forecastItems">
+                            <!-- 预报项将通过JavaScript动态添加 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="footer">
+            <p>© 2023 极简天气查询工具</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
