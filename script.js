@@ -80,12 +80,118 @@ const Utils = {
     }
 };
 
+// 中文城市到英文城市的映射
+const CityMap = {
+    '北京': 'Beijing',
+    '上海': 'Shanghai',
+    '广州': 'Guangzhou',
+    '深圳': 'Shenzhen',
+    '杭州': 'Hangzhou',
+    '成都': 'Chengdu',
+    '武汉': 'Wuhan',
+    '西安': "Xi'an",
+    '南京': 'Nanjing',
+    '重庆': 'Chongqing',
+    '天津': 'Tianjin',
+    '苏州': 'Suzhou',
+    '郑州': 'Zhengzhou',
+    '长沙': 'Changsha',
+    '青岛': 'Qingdao',
+    '宁波': 'Ningbo',
+    '厦门': 'Xiamen',
+    '福州': 'Fuzhou',
+    '济南': 'Jinan',
+    '哈尔滨': 'Harbin',
+    '沈阳': 'Shenyang',
+    '大连': 'Dalian',
+    '合肥': 'Hefei',
+    '无锡': 'Wuxi',
+    '佛山': 'Foshan',
+    '东莞': 'Dongguan',
+    '昆明': 'Kunming',
+    '长春': 'Changchun',
+    '石家庄': 'Shijiazhuang',
+    '常州': 'Changzhou',
+    '泉州': 'Quanzhou',
+    '南宁': 'Nanning',
+    '温州': 'Wenzhou',
+    '南昌': 'Nanchang',
+    '贵阳': 'Guiyang',
+    '烟台': 'Yantai',
+    '嘉兴': 'Jiaxing',
+    '南通': 'Nantong',
+    '金华': 'Jinhua',
+    '惠州': 'Huizhou',
+    '太原': 'Taiyuan',
+    '徐州': 'Xuzhou',
+    '绍兴': 'Shaoxing',
+    '中山': 'Zhongshan',
+    '台州': 'Taizhou',
+    '潍坊': 'Weifang',
+    '兰州': 'Lanzhou',
+    '海口': 'Haikou',
+    '扬州': 'Yangzhou',
+    '汕头': 'Shantou',
+    '保定': 'Baoding',
+    '唐山': 'Tangshan',
+    '镇江': 'Zhenjiang',
+    '吉林': 'Jilin',
+    '柳州': 'Liuzhou',
+    '洛阳': 'Luoyang',
+    '珠海': 'Zhuhai',
+    '湛江': 'Zhanjiang',
+    '宜昌': 'Yichang',
+    '邯郸': 'Handan',
+    '威海': 'Weihai',
+    '咸阳': 'Xianyang',
+    '芜湖': 'Wuhu',
+    '呼和浩特': 'Hohhot',
+    '乌鲁木齐': 'Urumqi',
+    '西宁': 'Xining',
+    '银川': 'Yinchuan',
+    '拉萨': 'Lhasa',
+    '澳门': 'Macau',
+    '香港': 'Hong Kong',
+    '台北': 'Taipei'
+};
+
+// 将中文城市名转换为英文
+function getEnglishCityName(chineseName) {
+    return CityMap[chineseName] || chineseName;
+}
+
+// 将英文城市名转换为中文
+function getChineseCityName(englishName) {
+    const lowerName = englishName.toLowerCase();
+    for (const [chinese, english] of Object.entries(CityMap)) {
+        if (english.toLowerCase() === lowerName) {
+            return chinese;
+        }
+    }
+    // 处理一些特殊情况（不同的拼写形式）
+    const specialCases = {
+        'xi an': '西安',
+        "xi'an": '西安',
+        'xian': '西安',
+        'xiamen': '厦门',
+        'hong kong': '香港',
+        'hongkong': '香港',
+        'macau': '澳门',
+        'beijing': '北京',
+        'shanghai': '上海',
+        'guangzhou': '广州',
+        'shenzhen': '深圳'
+    };
+    return specialCases[lowerName] || englishName;
+}
+
 // 天气API模块
 const WeatherAPI = {
     // 获取当前天气
     async getCurrentWeather(city) {
-        // 直接使用城市名称
-        const encodedCity = encodeURIComponent(city) + ',CN';
+        // 将中文城市名转换为英文用于API调用
+        const englishCity = getEnglishCityName(city);
+        const encodedCity = encodeURIComponent(englishCity) + ',CN';
         const url = `${Config.API_BASE_URL}/weather?q=${encodedCity}&appid=${Config.API_KEY}&units=metric&lang=zh_cn`;
         
         console.log('API请求URL:', url);
@@ -97,11 +203,13 @@ const WeatherAPI = {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.log('API错误数据:', errorData);
-                throw new Error(errorData.message || '城市不存在或API调用失败');
+                throw new Error('城市不存在或API调用失败');
             }
             
             const data = await response.json();
             console.log('API响应数据:', data);
+            // 将城市名设置为原始输入的中文名称
+            data.name = city;
             return data;
         } catch (err) {
             console.error('获取当前天气错误:', err);
@@ -111,8 +219,9 @@ const WeatherAPI = {
     
     // 获取天气预报
     async getForecast(city) {
-        // 直接使用城市名称
-        const encodedCity = encodeURIComponent(city) + ',CN';
+        // 将中文城市名转换为英文用于API调用
+        const englishCity = getEnglishCityName(city);
+        const encodedCity = encodeURIComponent(englishCity) + ',CN';
         const url = `${Config.API_BASE_URL}/forecast?q=${encodedCity}&appid=${Config.API_KEY}&units=metric&lang=zh_cn`;
         
         console.log('预报API请求URL:', url);
@@ -161,7 +270,10 @@ const WeatherAPI = {
             if (!response.ok) {
                 throw new Error('获取位置天气失败');
             }
-            return await response.json();
+            const data = await response.json();
+            // 将英文城市名转换为中文
+            data.name = getChineseCityName(data.name) || data.name;
+            return data;
         } catch (err) {
             console.error('获取位置天气错误:', err);
             throw err;
@@ -334,8 +446,37 @@ const UI = {
             this.displayAirQuality(airQuality);
         }
         
+        // 显示气压
+        this.displayPressure(currentWeather.main.pressure);
+        
+        // 显示能见度
+        this.displayVisibility(currentWeather.visibility);
+        
+        // 计算并显示降水概率（基于预报数据）
+        const precipitationProb = this.calculatePrecipitationProbability(forecastData);
+        this.displayPrecipitationProbability(precipitationProb);
+        
         // 未来几天预报
         this.displayForecast(forecastData);
+    },
+    
+    // 计算降水概率
+    calculatePrecipitationProbability(forecastData) {
+        if (!forecastData || !forecastData.list) return 0;
+        
+        // 计算未来24小时内有降水的概率
+        let rainyHours = 0;
+        const totalHours = 8; // 24小时预报有8个时段
+        
+        forecastData.list.slice(0, 8).forEach(item => {
+            const weatherId = item.weather[0].id;
+            // 检测是否有降水（雨、雪等）
+            if (weatherId >= 200 && weatherId < 700) {
+                rainyHours++;
+            }
+        });
+        
+        return Math.round((rainyHours / totalHours) * 100);
     },
     
     // 显示日出日落时间
@@ -424,6 +565,65 @@ const UI = {
     getAQIColor(aqi) {
         const colors = ['#00e400', '#ffff00', '#ff7e00', '#ff0000', '#8f3f97', '#7e0023'];
         return colors[aqi - 1] || '#999';
+    },
+    
+    // 显示气压
+    displayPressure(pressure) {
+        let pressureElement = document.getElementById('pressure');
+        
+        if (!pressureElement) {
+            const detailsContainer = document.querySelector('.details');
+            pressureElement = document.createElement('div');
+            pressureElement.className = 'detail-item';
+            pressureElement.id = 'pressure';
+            detailsContainer.appendChild(pressureElement);
+        }
+        
+        pressureElement.innerHTML = `
+            <i class="fas fa-thermometer"></i>
+            <span>气压</span>
+            <span>${pressure} hPa</span>
+        `;
+    },
+    
+    // 显示能见度
+    displayVisibility(visibility) {
+        let visibilityElement = document.getElementById('visibility');
+        
+        if (!visibilityElement) {
+            const detailsContainer = document.querySelector('.details');
+            visibilityElement = document.createElement('div');
+            visibilityElement.className = 'detail-item';
+            visibilityElement.id = 'visibility';
+            detailsContainer.appendChild(visibilityElement);
+        }
+        
+        const km = (visibility / 1000).toFixed(1);
+        visibilityElement.innerHTML = `
+            <i class="fas fa-eye"></i>
+            <span>能见度</span>
+            <span>${km} km</span>
+        `;
+    },
+    
+    // 显示降水概率
+    displayPrecipitationProbability(probability) {
+        let precipElement = document.getElementById('precipitation');
+        
+        if (!precipElement) {
+            const detailsContainer = document.querySelector('.details');
+            precipElement = document.createElement('div');
+            precipElement.className = 'detail-item';
+            precipElement.id = 'precipitation';
+            detailsContainer.appendChild(precipElement);
+        }
+        
+        const color = probability > 70 ? '#ff0000' : probability > 40 ? '#ff7e00' : '#00e400';
+        precipElement.innerHTML = `
+            <i class="fas fa-cloud-rain" style="color: ${color};"></i>
+            <span>降水概率</span>
+            <span style="color: ${color};">${probability}%</span>
+        `;
     },
     
     // 显示24小时预报
@@ -542,6 +742,261 @@ const UI = {
                 </button>
             </div>`
         ).join('');
+    },
+    
+    // 初始化收藏UI
+    initFavoriteUI() {
+        let favoriteContainer = document.querySelector('.favorite-section');
+        if (!favoriteContainer) {
+            const main = document.querySelector('.main');
+            const searchSection = document.querySelector('.search-section');
+            
+            favoriteContainer = document.createElement('section');
+            favoriteContainer.className = 'favorite-section';
+            favoriteContainer.innerHTML = `
+                <div class="section-header">
+                    <h3>收藏城市</h3>
+                    <span class="section-subtitle">点击城市快速切换</span>
+                </div>
+                <div class="favorite-list" id="favoriteList"></div>
+            `;
+            
+            main.insertBefore(favoriteContainer, searchSection.nextSibling);
+        }
+        
+        this.elements.favoriteList = document.getElementById('favoriteList');
+        this.updateFavoriteUI();
+    },
+    
+    // 更新收藏UI
+    updateFavoriteUI() {
+        if (!this.elements.favoriteList) return;
+        
+        const favorites = WeatherApp.getFavoriteCities();
+        const defaultCity = WeatherApp.getDefaultCity();
+        
+        if (favorites.length === 0) {
+            this.elements.favoriteList.innerHTML = '<p class="no-favorite">暂无收藏城市</p>';
+            return;
+        }
+        
+        this.elements.favoriteList.innerHTML = favorites.map(city => {
+            const isDefault = city === defaultCity;
+            return `
+                <div class="favorite-item" data-city="${city}">
+                    <span>${city}</span>
+                    <div class="favorite-actions">
+                        <button class="favorite-set-default" data-city="${city}" title="${isDefault ? '已设为默认' : '设为默认'}">
+                            <i class="fas ${isDefault ? 'fa-star' : 'fa-star-o'}"></i>
+                        </button>
+                        <button class="favorite-remove" data-city="${city}" title="取消收藏">
+                            <i class="fas fa-heart-broken"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    // 更新默认城市指示器
+    updateDefaultCityIndicator(city) {
+        const favoriteItems = document.querySelectorAll('.favorite-item');
+        favoriteItems.forEach(item => {
+            const itemCity = item.getAttribute('data-city');
+            const starIcon = item.querySelector('.favorite-set-default i');
+            if (itemCity === city) {
+                starIcon.className = 'fas fa-star';
+            } else {
+                starIcon.className = 'fas fa-star-o';
+            }
+        });
+    },
+    
+    // 更新当前城市的收藏按钮状态
+    updateCurrentCityFavoriteButton(city) {
+        const favBtn = document.querySelector('.favorite-btn');
+        if (favBtn) {
+            const isFav = WeatherApp.isFavorite(city);
+            const icon = favBtn.querySelector('i');
+            icon.className = isFav ? 'fas fa-heart' : 'far fa-heart';
+            favBtn.title = isFav ? '取消收藏' : '添加收藏';
+        }
+    },
+    
+    // 创建当前城市的收藏按钮
+    createFavoriteButton(city) {
+        let favBtn = document.querySelector('.favorite-btn');
+        if (!favBtn) {
+            const locationDiv = document.querySelector('.location');
+            favBtn = document.createElement('button');
+            favBtn.className = 'favorite-btn';
+            favBtn.innerHTML = '<i class="far fa-heart"></i>';
+            favBtn.title = '添加收藏';
+            locationDiv.appendChild(favBtn);
+        }
+        
+        this.updateCurrentCityFavoriteButton(city);
+    },
+    
+    // 创建分享按钮
+    createShareButtons() {
+        let shareContainer = document.querySelector('.share-container');
+        if (!shareContainer) {
+            const weatherInfo = document.querySelector('.weather-info');
+            shareContainer = document.createElement('div');
+            shareContainer.className = 'share-container';
+            shareContainer.innerHTML = `
+                <button class="share-btn" id="shareBtn" title="分享天气">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+                <div class="share-menu" id="shareMenu">
+                    <button class="share-option" data-platform="wechat">
+                        <i class="fab fa-weixin"></i>
+                        <span>微信</span>
+                    </button>
+                    <button class="share-option" data-platform="weibo">
+                        <i class="fab fa-weibo"></i>
+                        <span>微博</span>
+                    </button>
+                    <button class="share-option" data-platform="qq">
+                        <i class="fab fa-qq"></i>
+                        <span>QQ</span>
+                    </button>
+                    <button class="share-option" data-platform="copy">
+                        <i class="fas fa-copy"></i>
+                        <span>复制链接</span>
+                    </button>
+                    <button class="share-option" data-platform="image">
+                        <i class="fas fa-image"></i>
+                        <span>生成图片</span>
+                    </button>
+                </div>
+            `;
+            weatherInfo.appendChild(shareContainer);
+        }
+    },
+    
+    // 显示分享菜单
+    showShareMenu() {
+        const shareMenu = document.getElementById('shareMenu');
+        if (shareMenu) {
+            shareMenu.style.display = 'flex';
+        }
+    },
+    
+    // 隐藏分享菜单
+    hideShareMenu() {
+        const shareMenu = document.getElementById('shareMenu');
+        if (shareMenu) {
+            shareMenu.style.display = 'none';
+        }
+    },
+    
+    // 生成分享文本
+    generateShareText() {
+        const city = UI.elements.cityName.textContent;
+        const temp = UI.elements.currentTemp.textContent;
+        const desc = UI.elements.weatherDesc.textContent;
+        
+        return `${city}天气：${desc}，${temp}°C - 极简天气`;
+    },
+    
+    // 复制链接到剪贴板
+    async copyLink() {
+        const url = window.location.href;
+        try {
+            await navigator.clipboard.writeText(url);
+            this.showToast('链接已复制');
+        } catch (err) {
+            console.error('复制失败:', err);
+            this.showToast('复制失败');
+        }
+    },
+    
+    // 生成天气卡片图片
+    generateWeatherCard() {
+        const weatherContent = document.querySelector('.weather-content');
+        
+        // 创建canvas来生成图片
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置canvas尺寸
+        const width = 400;
+        const height = 500;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 创建渐变背景
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#4361ee');
+        gradient.addColorStop(1, '#3a0ca3');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // 获取天气数据
+        const city = UI.elements.cityName.textContent;
+        const date = UI.elements.date.textContent;
+        const temp = UI.elements.currentTemp.textContent;
+        const desc = UI.elements.weatherDesc.textContent;
+        const humidity = UI.elements.humidity.textContent;
+        const windSpeed = UI.elements.windSpeed.textContent;
+        
+        // 绘制城市名称
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(city, width / 2, 60);
+        
+        // 绘制日期
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillText(date, width / 2, 90);
+        
+        // 绘制温度
+        ctx.font = 'bold 64px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`${temp}°C`, width / 2, 180);
+        
+        // 绘制天气描述
+        ctx.font = '24px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillText(desc, width / 2, 230);
+        
+        // 绘制分隔线
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(50, 270);
+        ctx.lineTo(width - 50, 270);
+        ctx.stroke();
+        
+        // 绘制详细信息
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        
+        ctx.fillText(`湿度: ${humidity}`, 100, 320);
+        ctx.fillText(`风速: ${windSpeed}`, width - 100, 320);
+        
+        // 绘制底部装饰
+        ctx.font = '14px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillText('极简天气', width / 2, height - 30);
+        
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.download = `${city}-weather.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    },
+    
+    // 显示提示
+    showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
     }
 };
 
@@ -552,30 +1007,6 @@ const WeatherApp = {
         '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '重庆',
         '天津', '苏州', '郑州', '长沙', '青岛', '宁波', '厦门', '福州', '济南', '哈尔滨'
     ],
-    
-    // 中文城市到英文城市的映射
-    cityMap: {
-        '北京': 'Beijing',
-        '上海': 'Shanghai',
-        '广州': 'Guangzhou',
-        '深圳': 'Shenzhen',
-        '杭州': 'Hangzhou',
-        '成都': 'Chengdu',
-        '武汉': 'Wuhan',
-        '西安': 'Xian',
-        '南京': 'Nanjing',
-        '重庆': 'Chongqing',
-        '天津': 'Tianjin',
-        '苏州': 'Suzhou',
-        '郑州': 'Zhengzhou',
-        '长沙': 'Changsha',
-        '青岛': 'Qingdao',
-        '宁波': 'Ningbo',
-        '厦门': 'Xiamen',
-        '福州': 'Fuzhou',
-        '济南': 'Jinan',
-        '哈尔滨': 'Harbin'
-    },
     
     // 测试API连接
     async testAPIConnection() {
@@ -605,6 +1036,7 @@ const WeatherApp = {
     async init() {
         this.initEventListeners();
         UI.initTheme();
+        UI.initFavoriteUI();
         UI.initHistoryUI();
         
         // 测试API连接
@@ -684,8 +1116,123 @@ const WeatherApp = {
             }
         });
         
+        // 收藏按钮点击
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.favorite-btn')) {
+                const city = UI.elements.cityName.textContent;
+                const isFavorited = this.toggleFavorite(city);
+                UI.updateCurrentCityFavoriteButton(city);
+                
+                // 显示提示
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = isFavorited ? '已添加到收藏' : '已取消收藏';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            }
+        });
+        
+        // 收藏城市点击
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.favorite-item') && !e.target.closest('.favorite-actions')) {
+                const city = e.target.closest('.favorite-item').getAttribute('data-city');
+                this.selectCity(city);
+            }
+        });
+        
+        // 取消收藏
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.favorite-remove')) {
+                e.stopPropagation();
+                const city = e.target.closest('.favorite-remove').getAttribute('data-city');
+                this.removeFromFavorites(city);
+            }
+        });
+        
+        // 设置默认城市
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.favorite-set-default')) {
+                e.stopPropagation();
+                const city = e.target.closest('.favorite-set-default').getAttribute('data-city');
+                this.setDefaultCity(city);
+                
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = `已将${city}设为默认城市`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            }
+        });
+        
+        // 分享按钮点击
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.share-btn')) {
+                e.stopPropagation();
+                const shareMenu = document.getElementById('shareMenu');
+                const isVisible = shareMenu.style.display === 'flex';
+                UI.hideShareMenu();
+                if (!isVisible) {
+                    UI.showShareMenu();
+                }
+            }
+        });
+        
+        // 分享选项点击
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.share-option')) {
+                e.stopPropagation();
+                const platform = e.target.closest('.share-option').getAttribute('data-platform');
+                this.handleShare(platform);
+                UI.hideShareMenu();
+            }
+        });
+        
+        // 点击其他地方关闭分享菜单
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.share-container')) {
+                UI.hideShareMenu();
+            }
+        });
+        
         // 定位按钮（稍后添加）
         this.initLocationButton();
+    },
+    
+    // 处理分享
+    handleShare(platform) {
+        const shareText = UI.generateShareText();
+        const url = window.location.href;
+        
+        switch (platform) {
+            case 'wechat':
+                // 微信分享（提示用户复制链接到微信）
+                this.copyLink();
+                UI.showToast('请在微信中粘贴分享');
+                break;
+            case 'weibo':
+                // 微博分享
+                const weiboUrl = `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(shareText)}`;
+                window.open(weiboUrl, '_blank');
+                break;
+            case 'qq':
+                // QQ分享
+                const qqUrl = `https://connect.qq.com/widget/shareqq/index.html?url=${encodeURIComponent(url)}&title=${encodeURIComponent(shareText)}`;
+                window.open(qqUrl, '_blank');
+                break;
+            case 'copy':
+                // 复制链接
+                UI.copyLink();
+                break;
+            case 'image':
+                // 生成图片
+                UI.generateWeatherCard();
+                break;
+        }
+    },
+    
+    // 复制链接
+    copyLink() {
+        UI.copyLink();
     },
     
     // 初始化定位按钮
@@ -727,9 +1274,11 @@ const WeatherApp = {
     
     // 选择城市
     selectCity(city) {
-        UI.elements.searchInput.value = city;
+        // 将可能的英文城市名转换为中文
+        const chineseCity = getChineseCityName(city);
+        UI.elements.searchInput.value = chineseCity;
         UI.hideSuggestions();
-        this.searchCity(city);
+        this.searchCity(chineseCity);
     },
     
     // 搜索城市
@@ -760,6 +1309,12 @@ const WeatherApp = {
             UI.displayHourlyForecast(hourlyForecastData);
             UI.showWeatherContent();
             
+            // 创建收藏按钮
+            UI.createFavoriteButton(city);
+            
+            // 创建分享按钮
+            UI.createShareButtons();
+            
             // 添加到搜索历史
             this.addToSearchHistory(city);
             
@@ -771,7 +1326,8 @@ const WeatherApp = {
     // 加载默认天气
     async loadDefaultWeather() {
         try {
-            await this.searchCity(Config.DEFAULT_CITY);
+            const defaultCity = this.getDefaultCity();
+            await this.searchCity(defaultCity);
         } catch (err) {
             console.error('加载默认天气失败:', err);
             // 显示默认天气数据
@@ -943,6 +1499,57 @@ const WeatherApp = {
         history = history.filter(item => item !== city);
         Utils.setLocalStorage('searchHistory', history);
         UI.updateHistoryUI();
+    },
+    
+    // 获取收藏城市列表
+    getFavoriteCities() {
+        return Utils.getLocalStorage('favoriteCities', []);
+    },
+    
+    // 添加到收藏
+    addToFavorites(city) {
+        let favorites = this.getFavoriteCities();
+        if (!favorites.includes(city)) {
+            favorites.push(city);
+            Utils.setLocalStorage('favoriteCities', favorites);
+        }
+        UI.updateFavoriteUI();
+    },
+    
+    // 从收藏中移除
+    removeFromFavorites(city) {
+        let favorites = this.getFavoriteCities();
+        favorites = favorites.filter(item => item !== city);
+        Utils.setLocalStorage('favoriteCities', favorites);
+        UI.updateFavoriteUI();
+    },
+    
+    // 切换收藏状态
+    toggleFavorite(city) {
+        const favorites = this.getFavoriteCities();
+        if (favorites.includes(city)) {
+            this.removeFromFavorites(city);
+            return false;
+        } else {
+            this.addToFavorites(city);
+            return true;
+        }
+    },
+    
+    // 检查城市是否已收藏
+    isFavorite(city) {
+        return this.getFavoriteCities().includes(city);
+    },
+    
+    // 获取默认城市
+    getDefaultCity() {
+        return Utils.getLocalStorage('defaultCity', Config.DEFAULT_CITY);
+    },
+    
+    // 设置默认城市
+    setDefaultCity(city) {
+        Utils.setLocalStorage('defaultCity', city);
+        UI.updateDefaultCityIndicator(city);
     }
 };
 
