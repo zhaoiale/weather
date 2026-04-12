@@ -710,6 +710,55 @@ body.weather-fog::after {
     font-weight: 600;
 }
 
+.hourly-forecast {
+    margin-top: 20px;
+}
+
+.hourly-forecast h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.hourly-items {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.hourly-item {
+    flex: 0 0 65px;
+    background: rgba(67, 97, 238, 0.05);
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+    transition: var(--transition);
+    touch-action: manipulation;
+}
+
+.hourly-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+.hourly-time {
+    font-size: 11px;
+    margin-bottom: 6px;
+}
+
+.hourly-icon {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin: 6px 0;
+}
+
+.hourly-temp {
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .forecast {
     margin-top: 20px;
 }
