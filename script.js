@@ -4,7 +4,10 @@ const Config = {
     API_BASE_URL: 'https://api.openweathermap.org/data/2.5',
     DEFAULT_CITY: '北京',
     DEBOUNCE_DELAY: 300,
-    HISTORY_MAX_ITEMS: 5
+    HISTORY_MAX_ITEMS: 5,
+    // 天气预警API配置
+    WARNING_API_TOKEN: 'uzai92bsxwj8qok6n29uyjy33nooqzve',
+    WARNING_API_URL: 'https://eolink.o.apispace.com/467456/weather/v001/alarm'
 };
 
 // 工具函数模块
@@ -288,6 +291,38 @@ const WeatherAPI = {
     }
 };
 
+// 天气预警API模块
+const WarningAPI = {
+    // 获取天气预警
+    async getWarnings(city) {
+        const url = `${Config.WARNING_API_URL}?city=${encodeURIComponent(city)}`;
+        
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'X-Apispace-Token': Config.WARNING_API_TOKEN,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            console.log('预警API响应:', data);
+            
+            // 根据真实API格式解析：status为0表示成功，数据在result数组中
+            if (data.status === 0 && data.result && Array.isArray(data.result)) {
+                console.log('解析到的预警数据:', data.result);
+                return data.result;
+            } else {
+                console.error('预警API错误或无数据:', data);
+                return [];
+            }
+        } catch (err) {
+            console.error('获取预警失败:', err);
+            return [];
+        }
+    }
+};
+
 // UI模块
 const UI = {
     elements: {
@@ -420,9 +455,21 @@ const UI = {
     },
     
     // 显示天气数据
-    displayWeather(currentWeather, forecastData, airQuality = null) {
+    displayWeather(currentWeather, forecastData, airQuality = null, warnings = []) {
         // 设置天气效果
         this.setWeatherEffect(currentWeather.weather[0].id);
+        
+        // 获取当前城市名称
+        const city = currentWeather.name;
+        
+        // 检测并显示天气预警（优先使用API数据，若无则使用本地检测）
+        let alerts = [];
+        if (warnings && warnings.length > 0) {
+            alerts = this.parseAPIWarnings(warnings, city);
+        } else {
+            alerts = this.detectAlerts(currentWeather, airQuality);
+        }
+        this.displayAlerts(alerts);
         
         // 当前天气
         this.elements.cityName.textContent = currentWeather.name;
@@ -678,6 +725,276 @@ const UI = {
         
         document.documentElement.setAttribute('data-theme', initialTheme);
         this.updateThemeIcon(initialTheme);
+    },
+    
+    // 初始化实时时钟
+    initClock() {
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+    },
+    
+    // 更新时钟显示
+    updateClock() {
+        const now = new Date();
+        
+        // 更新时间
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        const timeStr = `${hours}:${minutes}:${seconds}`;
+        
+        // 更新DOM
+        const timeElement = document.getElementById('currentTime');
+        if (timeElement) {
+            timeElement.textContent = timeStr;
+        }
+    },
+    
+    // 解析API预警数据（过滤当前城市）
+    parseAPIWarnings(warnings, city) {
+        const alerts = [];
+        if (!warnings || warnings.length === 0 || !city) {
+            return alerts;
+        }
+        
+        // 过滤出当前城市的预警
+        const cityWarnings = warnings.filter(warning => {
+            // 检查标题或描述中是否包含当前城市名称
+            const title = warning.title || '';
+            const desc = warning.desc || '';
+            return title.includes(city) || desc.includes(city);
+        });
+        
+        console.log(`过滤出 ${cityWarnings.length} 条 ${city} 的预警`);
+        
+        cityWarnings.forEach(warning => {
+            // 根据预警级别确定样式类型
+            const levelText = warning.level || warning.levelCode || '';
+            let type = 'warning';
+            
+            if (levelText.includes('红色') || levelText.includes('Red') || levelText.includes('一级')) {
+                type = 'danger';
+            } else if (levelText.includes('橙色') || levelText.includes('Orange') || levelText.includes('二级')) {
+                type = 'warning';
+            } else if (levelText.includes('黄色') || levelText.includes('Yellow') || levelText.includes('三级')) {
+                type = 'warning';
+            } else if (levelText.includes('蓝色') || levelText.includes('Blue') || levelText.includes('四级')) {
+                type = 'info';
+            }
+            
+            // 获取预警图标
+            const icon = this.getWarningIcon(warning.type);
+            
+            // 构建描述文本（包含时间信息）
+            let description = warning.desc || warning.content || '请关注天气变化';
+            if (warning.public_time) {
+                description = `发布时间: ${warning.public_time}\n${description}`;
+            }
+            
+            alerts.push({
+                type: type,
+                title: warning.title || `${warning.type}${warning.level}` || '天气预警',
+                description: description,
+                icon: icon,
+                publicTime: warning.public_time,
+                effective: warning.effective,
+                expires: warning.expires
+            });
+        });
+        
+        return alerts;
+    },
+    
+    // 获取预警图标
+    getWarningIcon(type) {
+        const iconMap = {
+            '大风': 'fas fa-wind',
+            '暴雨': 'fas fa-cloud-showers-heavy',
+            '暴雪': 'fas fa-snowflake',
+            '高温': 'fas fa-thermometer-full',
+            '寒潮': 'fas fa-snowflake',
+            '雷电': 'fas fa-bolt',
+            '雷暴': 'fas fa-bolt',
+            '冰雹': 'fas fa-snowflake',
+            '沙尘暴': 'fas fa-smog',
+            '雾霾': 'fas fa-smog',
+            '大雾': 'fas fa-fog',
+            '霜冻': 'fas fa-snowflake',
+            '道路结冰': 'fas fa-snowflake'
+        };
+        
+        // 匹配类型关键字
+        for (const [key, icon] of Object.entries(iconMap)) {
+            if (type.includes(key)) {
+                return icon;
+            }
+        }
+        
+        return 'fas fa-exclamation-triangle';
+    },
+    
+    // 检测天气预警
+    detectAlerts(currentWeather, airQuality) {
+        const alerts = [];
+        const weatherId = currentWeather.weather[0].id;
+        const temp = Math.round(currentWeather.main.temp);
+        const windSpeed = currentWeather.wind.speed;
+        const humidity = currentWeather.main.humidity;
+        
+        // 大风预警 (风速 >= 17m/s 约61km/h，相当于8级大风)
+        if (windSpeed >= 17) {
+            alerts.push({
+                type: 'danger',
+                title: '大风预警',
+                description: `当前风速 ${Math.round(windSpeed)}m/s，请注意防范高空坠物`,
+                icon: 'fas fa-wind'
+            });
+        } else if (windSpeed >= 10) {
+            alerts.push({
+                type: 'warning',
+                title: '大风提示',
+                description: `当前风速 ${Math.round(windSpeed)}m/s，外出请注意防风`,
+                icon: 'fas fa-wind'
+            });
+        }
+        
+        // 高温预警 (温度 >= 35°C)
+        if (temp >= 38) {
+            alerts.push({
+                type: 'danger',
+                title: '高温红色预警',
+                description: `当前温度 ${temp}°C，极端高温天气，请避免户外活动`,
+                icon: 'fas fa-thermometer-full'
+            });
+        } else if (temp >= 35) {
+            alerts.push({
+                type: 'warning',
+                title: '高温预警',
+                description: `当前温度 ${temp}°C，高温天气，注意防暑降温`,
+                icon: 'fas fa-thermometer-three-quarters'
+            });
+        }
+        
+        // 低温预警 (温度 <= -10°C)
+        if (temp <= -15) {
+            alerts.push({
+                type: 'danger',
+                title: '寒潮预警',
+                description: `当前温度 ${temp}°C，极端寒冷天气，请注意保暖`,
+                icon: 'fas fa-snowflake'
+            });
+        } else if (temp <= -10) {
+            alerts.push({
+                type: 'warning',
+                title: '寒冷提示',
+                description: `当前温度 ${temp}°C，气温较低，注意添衣保暖`,
+                icon: 'fas fa-snowflake'
+            });
+        }
+        
+        // 暴雨预警 (天气ID在500-531之间，代表降雨)
+        if (weatherId >= 500 && weatherId <= 531) {
+            if (weatherId >= 502 && weatherId <= 504) {
+                alerts.push({
+                    type: 'danger',
+                    title: '暴雨预警',
+                    description: '预计有大到暴雨，请注意防范城市内涝',
+                    icon: 'fas fa-cloud-showers-heavy'
+                });
+            } else {
+                alerts.push({
+                    type: 'warning',
+                    title: '降雨提示',
+                    description: '预计有降雨，请携带雨具',
+                    icon: 'fas fa-cloud-rain'
+                });
+            }
+        }
+        
+        // 暴雪预警 (天气ID在600-622之间，代表降雪)
+        if (weatherId >= 600 && weatherId <= 622) {
+            if (weatherId >= 602 || weatherId >= 620) {
+                alerts.push({
+                    type: 'danger',
+                    title: '暴雪预警',
+                    description: '预计有大到暴雪，请注意道路结冰',
+                    icon: 'fas fa-snowflake'
+                });
+            } else {
+                alerts.push({
+                    type: 'warning',
+                    title: '降雪提示',
+                    description: '预计有降雪，请注意出行安全',
+                    icon: 'fas fa-snowflake'
+                });
+            }
+        }
+        
+        // 雷暴预警 (天气ID在200-232之间)
+        if (weatherId >= 200 && weatherId <= 232) {
+            alerts.push({
+                type: 'danger',
+                title: '雷暴预警',
+                description: '预计有雷电活动，请避免户外活动',
+                icon: 'fas fa-bolt'
+            });
+        }
+        
+        // 雾霾预警 (空气质量指数 >= 150)
+        if (airQuality && airQuality.list && airQuality.list[0]) {
+            const aqi = airQuality.list[0].main.aqi;
+            if (aqi >= 300) {
+                alerts.push({
+                    type: 'danger',
+                    title: '严重污染预警',
+                    description: `空气质量指数 ${aqi}，严重污染，请减少外出`,
+                    icon: 'fas fa-smog'
+                });
+            } else if (aqi >= 150) {
+                alerts.push({
+                    type: 'warning',
+                    title: '空气污染提示',
+                    description: `空气质量指数 ${aqi}，轻度污染，减少户外活动`,
+                    icon: 'fas fa-smog'
+                });
+            }
+        }
+        
+        // 高湿度提示 (>85%)
+        if (humidity > 90) {
+            alerts.push({
+                type: 'info',
+                title: '高湿度提示',
+                description: `湿度 ${humidity}%，空气潮湿，注意防潮`,
+                icon: 'fas fa-tint'
+            });
+        }
+        
+        return alerts;
+    },
+    
+    // 显示天气预警
+    displayAlerts(alerts) {
+        const alertsContainer = document.getElementById('weatherAlerts');
+        if (!alertsContainer) return;
+        
+        if (!alerts || alerts.length === 0) {
+            alertsContainer.innerHTML = '';
+            return;
+        }
+        
+        alertsContainer.innerHTML = alerts.map((alert, index) => `
+            <div class="alert-item ${alert.type}" data-alert-index="${index}">
+                <i class="alert-icon ${alert.icon}"></i>
+                <div class="alert-content">
+                    <div class="alert-title">${alert.title}</div>
+                    <div class="alert-desc">${alert.description}</div>
+                </div>
+                <button class="alert-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
     },
     
     // 更新主题图标
@@ -1036,6 +1353,7 @@ const WeatherApp = {
     async init() {
         this.initEventListeners();
         UI.initTheme();
+        UI.initClock();
         UI.initFavoriteUI();
         UI.initHistoryUI();
         
@@ -1304,8 +1622,11 @@ const WeatherApp = {
                 currentWeather.coord.lon
             );
             
+            // 获取天气预警
+            const warnings = await WarningAPI.getWarnings(city);
+            
             // 显示天气数据
-            UI.displayWeather(currentWeather, forecastData, airQuality);
+            UI.displayWeather(currentWeather, forecastData, airQuality, warnings);
             UI.displayHourlyForecast(hourlyForecastData);
             UI.showWeatherContent();
             
